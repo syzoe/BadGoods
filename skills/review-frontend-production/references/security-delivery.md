@@ -1,203 +1,122 @@
-# 安全与交付审查
+# Security and delivery review
 
-把本文件用于真实数据、账号、接口、外部服务、构建、部署和持续维护相关的审查。先识别适用边界，再按每一类的五步执行；不要把清单机械套到纯静态展示页。按 source-register.md 中的来源标识核查规则与项目版本。
+Apply to real identities, data, APIs, third parties, builds, deployment, and operations as relevant. For each topic collect evidence, perform authorized verification, establish what it proves, propose the owning repair, and define regression. Match primary sources and project versions using [Source register](source-register.md).
 
-## 目录
+## Authority, evidence, ownership
 
-- [先确定授权、证据与责任](#先确定授权证据与责任)
-- [01 检查对象、字段、租户与接口授权](#01-检查对象字段租户与接口授权)
-- [02 检查会话与浏览器存储](#02-检查会话与浏览器存储)
-- [03 检查数据库授权与 RLS](#03-检查数据库授权与-rls)
-- [04 区分公开配置与私密凭据](#04-区分公开配置与私密凭据)
-- [05 检查运行边界与服务端防护](#05-检查运行边界与服务端防护)
-- [06 按架构检查 CSRF 与 CORS](#06-按架构检查-csrf-与-cors)
-- [07 检查 Markdown、富文本与 AI 输出](#07-检查-markdown富文本与-ai-输出)
-- [08 检查外链与重定向](#08-检查外链与重定向)
-- [09 检查 iframe 与 postMessage](#09-检查-iframe-与-postmessage)
-- [10 检查上传、下载与导出](#10-检查上传下载与导出)
-- [11 检查依赖与供应链](#11-检查依赖与供应链)
-- [12 检查开发、预览与生产构建](#12-检查开发预览与生产构建)
-- [13 检查缓存与 Service Worker](#13-检查缓存与-service-worker)
-- [14 检查发布与回滚兼容性](#14-检查发布与回滚兼容性)
-- [15 检查日志、埋点与隐私](#15-检查日志埋点与隐私)
-- [16 检查错误边界与监控](#16-检查错误边界与监控)
-- [17 检查 CI、测试与证据含义](#17-检查-ci测试与证据含义)
-- [把发现转成可复验的重构任务](#把发现转成可复验的重构任务)
+Record URLs/revisions/environment/roles/tenants/data and available server visibility. Reuse authority already given. Start with source/readonly observation and isolated local verification; inspect scripts and target configuration before execution. A test name does not establish a test environment.
 
-## 先确定授权、证据与责任
+Production orders, deletes, permission changes, paid jobs, messages/webhooks, external export, credential/session changes, and deployment may have real consequences. Continue authorized bounded tests; otherwise prepare a concrete safe test plan and identify the missing authority. HTTP method alone does not determine safety.
 
-1. 列出目标 URL、源码版本、环境、角色、租户、数据来源和服务端可见范围；关联主流程中的页面、状态、组件编号。
-2. 先复用已有授权。默认执行只读观察、源码审查和无真实副作用的本地／隔离验证；不要在生产环境创建订单、删除数据、改权限、启动付费任务、发送通知或发布部署来证明问题。
-3. 在用户已经授权且测试环境、测试账号、可清理数据和副作用范围已明确时继续验证，不重复询问。先检查测试脚本和目标配置，避免测试名虽含 test 却连接生产。
-4. 把付费模型调用、邮件／短信、webhook、导出外传和会话撤销视为可能有真实副作用的动作；不要只依据 HTTP 方法判断安全。对未获授权的依赖动作先提供具体测试方案。
-5. 无法访问源码、数据库规则、身份配置、真实服务或可控环境时，标记 blocked，并列出最小缺失证据、取得方式及解锁后要跑的验证；不要假装运行，不要把 blocked 计入通过。
-6. 区分观察事实、可复现缺陷、推断风险和不可验证项。源码中未找到防护，只能证明已搜索范围内未见；不能证明网关、身份服务或数据库一定没有防护。
-7. 区分前端、后端／身份、数据库、平台、安全及产品责任。把前端 guard、隐藏按钮、校验、去抖归为体验控制；把不可绕过的授权、业务规则、幂等和审计分配给可信执行层。
-8. 将共用控制关联所有受影响页面；遇到不同角色、接口、缓存策略或组件配置时分别复验，不以一个入口通过代表整站通过。
-9. 仅记录必要的脱敏证据。给出文件与位置、请求结构、状态码、角色关系和结果摘要；不要把完整凭据、他人隐私或真实文档复制到报告。
+Missing source, policies, identity configuration, services, or controlled data means blocked with exact missing evidence and next steps. Absence from searched frontend source does not prove a gateway/database control is absent. Assign frontend, backend/identity, database, platform, security, and product responsibility separately. UI guards/validation/debounce are experience controls; trusted authorization, business rules, idempotency, and audit belong at an unbypassable boundary.
 
-## 01 检查对象、字段、租户与接口授权
+Preserve all affected pages and caller differences. Record necessary redacted file/request/status/role/result evidence, never full credentials, private documents, or unrelated personal data.
 
-- 观察证据：盘点权限矩阵、路由 guard、按钮显隐、服务端中间件、对象查询、字段序列化、租户来源、下载／导出与 GraphQL resolver。
-- 验证动作：用获准的测试身份比较匿名、本人、同租户非所有者、跨租户和管理员；对照允许矩阵检查读取与写入。先用夹具或集成测试覆盖直接调用 API 的路径，不仅从页面点击。
-- 判定边界：仅看到隐藏按钮或前端 role 判断时，不把它判作后端授权充分；仅缺后端源码时，也不判为后端越权。先确认数据原本应保密，避免把合法公开数据误报为泄露。
-- 重构机制：在可信服务层按主体、动作、对象、字段、租户执行授权并默认拒绝未明确允许的访问；从可信身份解析租户；最小化响应字段。让前端消费权限结果并显示一致反馈。
-- 复验：证明合法访问仍成功、越权访问失败且不返回受限字段；覆盖列表、详情、搜索、批量、导出和静态附件。记录服务器证据或明确剩余 blocked。
-- 来源：OWASP-AUTH、OWASP-FE。
+## 01 Object, field, tenant, and API authorization
 
-## 02 检查会话与浏览器存储
+- **Inspect:** permission matrix, UI guards, middleware, queries, serialization, tenant derivation, downloads/exports, GraphQL resolvers.
+- **Verify:** authorized anonymous/self/non-owner/cross-tenant/admin fixtures, reads/writes, direct API paths as well as UI.
+- **Interpret:** hidden buttons do not establish backend safety; inaccessible backend does not prove bypass. Establish that data is actually intended to be private.
+- **Repair/recheck:** trusted subject/action/object/field/tenant checks, default deny, trusted tenant identity, minimal responses; test allowed and denied list/detail/search/bulk/export/attachment paths. Sources: OWASP-AUTH, SUPABASE-RLS.
 
-- 观察证据：追踪登录、刷新、过期、退出、切账号和切租户；检查 cookie 属性、令牌有效期及 localStorage、sessionStorage、IndexedDB、查询缓存的用途。
-- 验证动作：在隔离账号中重现刷新页面、多个标签、令牌失效和 A 退出后 B 登录；观察过期请求与缓存。只在授权范围内验证设备撤销，不下线真实用户。
-- 判定边界：区分本地登录展示与可信身份；不要把 localStorage 中有普通偏好视为漏洞。发现长期会话凭据可被 JS 读取时评估威胁与架构；不要宣称 HttpOnly 消除了 XSS 或 CSRF。
-- 重构机制：使用项目身份体系的受支持流程；合并并发刷新，限制失效重试；按主体／租户划分并清理缓存。需要跨端撤销时要求服务端会话支持，禁止只靠本地事件模拟。
-- 复验：确认账号／租户切换后无前一身份数据残留；确认过期不会无限重试、丢失必要草稿或错误恢复旧身份；标明本地同步与跨设备撤销分别验证到哪里。
-- 来源：OWASP-HTML5、OWASP-AUTH。
+## 02 Sessions and browser storage
 
-## 03 检查数据库授权与 RLS
+Trace login/refresh/expiry/logout/account/tenant changes, cookie attributes, token lifetimes, local/session storage, IndexedDB, and query caches. In isolated accounts test refresh, tabs, expiry, A logout → B login, late requests and cached data. Device revocation requires specific authority.
 
-- 观察证据：在使用 Supabase 或类似服务时读取 schema、grants、RLS 开关、各操作 policy、视图／函数权限、存储桶规则、迁移与授权测试；识别客户端与服务端使用的角色。
-- 验证动作：优先在隔离数据库以 anon、authenticated、所有者、他人和跨租户夹具验证 SELECT、INSERT、UPDATE、DELETE；让受影响表和规则直接进入测试，不另建一个无关示例表充数。
-- 判定边界：允许客户端按平台设计直连受保护 API；不要将此架构本身判为漏洞。区分公开 anon／publishable key 与 service-role／secret key；不要因看见公开 key 就报泄密。仅见已启用 RLS，也不能推出规则正确。
-- 重构机制：让表级 grants 与行级 policy 同时匹配业务；按操作限制主体与数据归属；检查可绕过 RLS 的服务角色、视图和函数。把配置变成迁移，并为新增表提供安全默认值。
-- 复验：同时证明授权路径有正确数据、拒绝路径无数据／无写入；覆盖修改归属字段、批量入口和附件。缺数据库证据时标 blocked，要求脱敏 migration／policy 导出与测试结果。
-- 来源：SUPABASE-RLS、OWASP-AUTH。
+Ordinary stored preferences are not secrets. Assess JS-readable long-lived credentials in the actual architecture; HttpOnly does not eliminate XSS/CSRF. Reuse the identity provider's supported flow, coordinate refresh/retry, partition/clear identity data, and require server support for cross-device revocation. Verify no old-account data, infinite retry, unsafe draft loss, or resurrected identity. Sources: OWASP-HTML5, OWASP-AUTH.
 
-## 04 区分公开配置与私密凭据
+## 03 Database authorization and RLS
 
-- 观察证据：检查客户端依赖图、环境变量注入配置、构建产物、网络请求与服务端入口；只摘录变量名和位置，避免打印全部环境或凭据。
-- 验证动作：从生产模式构建产物确认哪些配置进入浏览器；追踪模型、支付、邮件、存储服务的 key 类型和能力；对照服务商文档区分公开标识与私密凭据。
-- 判定边界：不要把 .env、代码混淆、Base64、代理路径或不提交 Git 当成浏览器内保密机制。不要把 public key 名称当作安全保证，也不要把按设计公开的项目标识一概报为 secret。
-- 重构机制：把私密凭据放入可信运行环境与秘密管理系统；让受控后端执行私密调用；使用最小权限和配额。确认泄露时提出轮换与影响核查，不只从最新页面移除字符串。
-- 复验：检查旧／新构建、source map 和日志是否仍包含私密值；以测试凭据证明新调用链可用。source map 公开本身需按源码公开策略判断，不能单独推断密钥泄露。
-- 来源：VITE-ENV、OWASP-FE、GHA-SECURE。
+For Supabase-like platforms inspect schema/grants/RLS/policies per operation, views/functions/service roles/storage/migrations/tests. In isolated fixtures test anon/authenticated/owner/other/cross-tenant SELECT/INSERT/UPDATE/DELETE on the actual affected objects.
 
-## 05 检查运行边界与服务端防护
+Protected direct client APIs can be intentional. Public anon/publishable keys differ from secret/service-role keys; enabled RLS does not prove correct policies. Align grants and operation-specific policies, inspect bypass-capable roles/views/functions, migrate configuration, and test allowed data plus denied reads/writes/ownership changes/bulk/attachments. Without policies/database access, request redacted policy/migration and results, and retain blocked. Sources: SUPABASE-RLS, OWASP-AUTH.
 
-- 观察证据：绘出浏览器、SSR／Server Component、BFF、API、Edge Function、数据库、队列及外部服务的实际执行边界；追踪请求如何获得身份、配额和业务参数。
-- 验证动作：检查价格、资源额度、文件大小、目标 URL、任务状态等规则在何处执行；用无副作用夹具验证服务器校验、限额和错误映射。核对请求超时、重试、取消和任务完成的协议。
-- 判定边界：不要把 SSR、server 文件名或 Edge 部署自动视为有授权；不要把断开连接等同于终止后台任务，把禁用按钮等同于业务幂等，把未收到回包等同于操作失败。
-- 重构机制：在可信层验证输入、权限、业务规则和资源限制；为可能重复执行的业务约定幂等键与去重存储；区分失败与结果未知，提供状态查询；为真正取消约定服务器协议。对 URL 抓取、模型工具或代理能力按能力边界限制目标与行为。
-- 复验：在隔离环境验证同一意图的重复请求、回包丢失、部分成功、取消后查询和暂时性失败；证明真实副作用次数正确。没有后台证据时只确认前端状态处理，不宣称后台已停止或已去重。
-- 来源：RFC9110、OWASP-FE、OWASP-AUTH。
+## 04 Public configuration versus secrets
 
-## 06 按架构检查 CSRF 与 CORS
+Trace client dependency graph, variable injection, built output, requests, and server entry points. Record names/locations without dumping environments. Check provider-defined capabilities of model/payment/mail/storage keys and inspect production bundles.
 
-- 观察证据：先记录身份是否由浏览器自动携带、写接口方法与内容类型、cookie SameSite、Origin／Referer、Fetch Metadata、框架 CSRF 中间件、强制请求头和实际 CORS 响应。
-- 验证动作：沿真实写操作检查客户端提交与服务端验证如何配合；在获准的隔离来源和测试账号中验证跨站请求的成功条件；区分浏览器能否发出请求、服务器是否执行、攻击者能否读取响应。
-- 判定边界：不以“没有 CSRF token”直接判有漏洞；核实框架内置控制、强制自定义头与严格来源策略等等效方案。也不以“用了 JWT／JSON／SameSite”直接判安全；按具体架构与接口验证。
-- 重构机制：优先启用适用框架的 CSRF 机制；在服务端验证每个受保护的变更请求；准确约束可信来源及凭据。避免为联调盲目放宽 CORS，避免把 CORS 当对象授权。
-- 复验：证明合法同源／业务跨域流程可用，未授权跨站变更被拒；覆盖登录、上传、表单、JSON API 及 GET 误用。仅见页面而缺会话／部署证据时标 blocked，并列出所需响应头和服务端配置。
-- 来源：OWASP-CSRF、FETCH、OWASP-HTML5。
+`.env`, obfuscation, Base64, proxy names, and Git exclusion do not keep browser-delivered values secret. “Public” in a name is not proof either. Move private calls/keys to trusted runtime, minimize scope/quota, and propose rotation/impact review for confirmed exposure. Recheck old/new builds, maps, logs and a safe test call. Public source maps alone are a source-disclosure policy question, not proof of leaked credentials. Sources: VITE-ENV, OWASP-FE, GHA-SECURE.
 
-## 07 检查 Markdown、富文本与 AI 输出
+## 05 Runtime boundaries and server guarantees
 
-- 观察证据：追踪用户、模型、文档、搜索结果、API 和本地缓存内容到文本、HTML、URL、CSS 或脚本输出位置；检查 raw HTML、渲染插件、代码高亮、SVG 和动态组件能力。
-- 验证动作：在隔离渲染器用无外传、无破坏的标记样本验证文本转义、HTML 清洗、链接协议与嵌入限制；覆盖流式半段、最终结果、编辑预览、历史记录与导出。
-- 判定边界：区分普通 Markdown 与启用危险扩展后的渲染；不要因存在原始字符串或未做输入清洗便判 XSS。必须建立不可信来源、危险输出位置和可执行路径；框架文本转义不等于任意 HTML 已清洗。
-- 重构机制：默认使用安全文本绑定；确需 HTML 时使用维护中的 sanitizer 和明确允许列表；按输出上下文处理 URL／属性；把模型输出当不可信数据，隔离允许执行的用户代码。
-- 复验：证明危险能力不可执行且正常格式、链接、代码块仍可用；核对 sanitizer 与插件的实际版本，避免清洗后再被后处理重新引入危险内容。
-- 来源：OWASP-FE、OWASP-HTML5。
+Map browser/SSR/server components/BFF/API/edge/database/queue/third party, identity, quota, input and execution. Check prices, limits, target URLs and task transitions at trusted boundaries using harmless fixtures.
 
-## 08 检查外链与重定向
+Server filenames/SSR/edge do not automatically establish authorization. Disconnect does not prove cancellation; disabled does not prove idempotency; lost response does not prove failure. Specify server validation/authorization/resource limits, stored idempotency, unknown-outcome query, real cancellation protocol, and bounded fetch/tool/proxy capabilities. Verify duplicate/lost/partial/cancel/retry behavior and actual effect counts. Without backend evidence, limit claims to frontend behavior. Sources: RFC9110, OWASP-FE, OWASP-AUTH.
 
-- 观察证据：收集 returnTo、next、redirect、下载链接、富文本链接和用户提供 URL 的来源、解析和最终导航方式。
-- 验证动作：用本地安全目标验证相对路径、协议、跨源、编码和多重重定向的处理；检查凭据、文档标识和敏感 query 是否被附到外部请求。
-- 判定边界：不要将“允许外链”一概判为漏洞；先确认产品承诺、信任目标和数据边界。不要只靠字符串包含域名或统一 HTML 转义判断 URL 安全。
-- 重构机制：使用 URL 解析和精确的协议／目标策略；约束身份回调跳转；按目标浏览器和打开方式处理 opener；在敏感导航场景设置合适的 referrer 策略。
-- 复验：确认业务允许的外链正常，未授权跳转与凭据外带被阻断；在承诺的浏览器上验证实际行为，避免只看静态属性。
-- 来源：HTML、OWASP-HTML5、RFC9110。
+## 06 CSRF and CORS
 
-## 09 检查 iframe 与 postMessage
+Identify automatically attached credentials, methods/content types, SameSite, Origin/Referer/Fetch Metadata, framework protection, mandatory headers, actual CORS. In authorized isolated origins trace client submission and server validation; distinguish request sent, server effect, and readable response.
 
-- 观察证据：检查 iframe 源、sandbox／权限、共享 origin、消息发送目标、接收事件的 origin／source 校验、载荷结构及消息能触发的能力。
-- 验证动作：在隔离父子页面中尝试来自不可信窗口、错误 origin、错误结构和过时会话的消息；验证重定向后接收方变化。
-- 判定边界：不要把 *、缺 sandbox 或使用 iframe 单独视为已证实漏洞；结合敏感载荷与赋予能力判断。不要信任消息中的 role／userId，也不要用域名子串匹配代替精确 origin。
-- 重构机制：明确允许的发送／接收来源和消息 schema；最小化 iframe 能力；为需要执行不可信内容的页面设计隔离 origin。对来源不可固定的场景记录替代验证机制与威胁模型。
-- 复验：确认合法嵌入与登录消息正常，来自其他窗口的消息不能变更身份、取走敏感数据或触发高权限操作。
-- 来源：OWASP-HTML5、HTML。
+No CSRF token does not prove exploitability; JWT/JSON/SameSite do not independently prove safety. Check equivalent controls and real architecture. Prefer supported framework protection, validate state-changing requests, constrain origins/credentials, preserve legitimate cross-origin flows. CORS is not object authorization. Missing session/deployment evidence remains blocked with required headers/configuration. Sources: OWASP-CSRF, FETCH, OWASP-HTML5.
 
-## 10 检查上传、下载与导出
+## 07 Markdown, rich text, AI output
 
-- 观察证据：检查文件选择预校验、服务器约束、对象命名、存储桶规则、签名 URL 权限与有效期、下载响应和导出任务。
-- 验证动作：用小型无害测试文件和合成数据验证类型、大小、归属、过期链接及取消恢复；在授权环境检查直接接口路径，不向真实第三方上传私密内容。
-- 判定边界：不把前端 accept、扩展名或禁用按钮视为服务器验证；不凭文件可下载就判断泄露，先核实预期公开范围与链接授权方式。
-- 重构机制：让服务端校验文件与对象权限、设置适当资源限制；隔离需预览的主动内容；按用途设定短时授权下载、清理临时文件和可恢复进度。
-- 复验：证明合法文件可用、越权下载被拒、取消与重试不遗留错误业务状态；未取得存储策略与可控账号时明确 blocked。
-- 来源：OWASP-AUTH、OWASP-FE、SUPABASE-RLS。
+Trace untrusted user/model/document/search/API/cache values to text/HTML/URL/CSS/script sinks, raw HTML plugins/highlighters/SVG/dynamic execution. Use harmless isolated markers for escaping, sanitization, protocols/embeds across partial streams/final/history/preview/export.
 
-## 11 检查依赖与供应链
+A string or unsanitized input alone is not proven XSS; establish untrusted source, dangerous sink, reachable execution. Text escaping is not arbitrary HTML sanitization. Use safe text by default, maintained context-appropriate sanitization/allowlists where needed, and isolate allowed code execution. Verify dangerous capabilities blocked while legitimate formatting survives, including postprocessing/plugin versions. Sources: OWASP-FE, OWASP-HTML5.
 
-- 观察证据：读取 manifest、锁文件、运行时版本、安装脚本、远程 CDN 脚本、组件来源、许可证、漏洞告警和更新策略；检查 CI 第三方 action 及其凭据范围。
-- 验证动作：核对实际解析版本与直接／传递依赖；在必要时用官方公告确认漏洞适用条件、受影响版本和可达路径。运行安装前查看脚本，避免让不可信安装步骤读取现有秘密。
-- 判定边界：不要把 audit 条数、包名可疑、版本旧或有 CVE 直接转换为已可利用漏洞；也不要把锁文件、下载量或“官方包”当成安全证明。审查 CDN 第三方代码的运行能力，不只看域名。
-- 重构机制：移除不必要依赖；锁定并可复现安装，安排受控升级；限制第三方脚本和 CI 权限；对 action 采用可信来源与不可变引用；将漏洞修复与兼容性回归一并规划。
-- 复验：确认依赖树、构建、关键路径和授权配置符合目标；保留修复前后版本证据。不要为清空告警而盲目强制升级或重写全部依赖。
-- 来源：NPM-CI、GHA-SECURE。
+## 08 External links and redirects
 
-## 12 检查开发、预览与生产构建
+Trace return/next/download/rich-content/user URLs, parsing, final navigation, and leaked sensitive query/referrer data. Test safe relative/encoded/cross-origin/protocol/redirect cases locally.
 
-- 观察证据：读取 package scripts、框架／构建器版本、tsconfig、CI 与部署配置；区分 dev server、预览构建、生产服务、mock、代理和真实 API。
-- 验证动作：先检查命令副作用，再运行项目实际 typecheck、lint、测试和生产 build；核对退出码与完整脚本链。用生产产物验证深层路由刷新、资源 base、懒加载、环境配置和目标浏览器。
-- 判定边界：不要以开发页面能打开推断 build 成功；不要以 build 成功推断类型检查执行过。Vite 本身只转译 TypeScript；项目 build 脚本可能另行调用 tsc，必须查看实际脚本。其他框架按对应版本查证。
-- 重构机制：将类型／静态检查与构建组织为明确门禁；分离预览和生产的账号、API、回调与秘密；校验必填配置。为本地代理与生产网关建立一致契约。
-- 复验：在干净环境完成目标生产构建并运行产物；保留版本、命令、退出状态和验证范围。没有部署访问时将生产域名、响应头和回调验证保留为 blocked，不写“生产已验证”。
-- 来源：VITE-FEAT、VITE-BUILD、VITE-ENV、TS-BASICS、NPM-CI。
+External links are not inherently vulnerabilities. Domain-substring matching/HTML escaping do not validate a URL. Use exact parsed protocol/target policy, bounded auth redirects, appropriate opener/referrer handling, then check allowed navigation and blocked unauthorized redirects/data transfer on supported browsers. Sources: HTML, OWASP-HTML5, RFC9110.
 
-## 13 检查缓存与 Service Worker
+## 09 Iframes and messages
 
-- 观察证据：分别盘点 HTTP／CDN、SSR 数据、内存查询缓存、浏览器存储和 Cache API；检查个性化响应的缓存键、头、Service Worker scope、更新与激活策略。
-- 验证动作：在隔离环境比较首次访问、旧标签、离线、重新上线、账号／租户切换和新版本发布；检查缓存中是否留有不应持久化的数据。
-- 判定边界：不要把 no-store 当作所有缓存已被清空；Cache API 不会自动按 HTTP 缓存头过期，需检查应用代码。不要为了“安全”统一禁用所有缓存；按数据敏感性和新鲜度要求判断。
-- 重构机制：分开静态资产与个性化数据策略；将必要身份／租户加入缓存语义；显式排除或安全清理敏感 Cache API 内容；设计 worker 更新、旧客户端兼容及受控恢复流程。
-- 复验：证明切账号不会看到他人数据，离线与恢复不会覆盖较新结果，旧标签能安全升级；清理缓存时不得误删真实用户未提交草稿。未见 CDN／worker 配置时注明覆盖边界。
-- 来源：RFC9111、MDN-CACHE、OWASP-HTML5、VITE-BUILD。
+Inspect source/sandbox/permissions/shared origin, target origin, received `origin/source`, payload schema and capabilities. With isolated parent/child pages test wrong window/origin/schema/stale identity and redirected receivers.
 
-## 14 检查发布与回滚兼容性
+A wildcard, missing sandbox, or iframe alone is not confirmed exploitation; assess sensitive payload/capability. Never trust role/userId in messages or domain substrings. Minimize capabilities, validate exact endpoints/schema, isolate executable untrusted content, document alternatives when origin cannot be fixed. Verify valid embedding and rejection of unauthorized identity/data/privileged actions. Sources: OWASP-HTML5, HTML.
 
-- 观察证据：关联 commit、构建、部署、静态资产、配置、数据库迁移和监控版本；检查发布策略、开关、历史产物与回滚流程。
-- 验证动作：在已有授权的预览／隔离环境演练新旧客户端与接口组合、旧动态 chunk 加载、配置变动和回滚；没有发布授权时先完成文档与兼容矩阵审查。
-- 判定边界：不要把前端回滚等同于回滚数据库、外部 API、已完成交易或模型任务；不要把平台提供按钮等同于应用已经具备恢复能力。
-- 重构机制：保留可恢复产物并设置兼容窗口；对破坏性接口和数据迁移分阶段处理；按风险采用分批发布或功能关闭能力，预设验证指标、停止条件及负责人。
-- 复验：验证回滚后关键旅程、身份与数据仍可用；证明新版本问题没有被旧配置重现。记录平台和应用层分别承担什么，未实际演练时不写回滚通过。
-- 来源：VERCEL-ROLLBACK、VITE-BUILD、RFC9111。
+## 10 Upload, download, export
 
-## 15 检查日志、埋点与隐私
+Inspect client hints versus server validation, names, buckets, signed-link authority/expiry, responses/jobs. Use small harmless files/synthetic data and authorized direct APIs; do not upload private material to third parties.
 
-- 观察证据：检查异常、console、请求日志、埋点、session replay、截图、表单字段、对话与文档采集；核对 SDK 版本、目的、接收方、过滤与访问策略。
-- 验证动作：用合成敏感标记触发成功、校验失败和异常，检查实际发出的事件及获准查看的接收结果；验证屏蔽和采样路径，不依赖配置名猜测效果。
-- 判定边界：不要把“开启默认脱敏”当成所有数据均受保护；也不要把必要的匿名诊断一概视为违规。区分产品政策、合同要求、适用法律和工程建议；涉及法律结论时按需另行核实。
-- 重构机制：采用字段允许列表和最小必要采集；在源头排除 token、密码与敏感内容；明确回放遮罩、身份关联、访问权限、保留期及删除流程。让监控故障不能拖垮主要业务。
-- 复验：证明必要事件可关联、敏感标记未外发、第三方不可用时主流程仍可用；没有接收端证据时只报告已验证发送侧范围。
-- 来源：OWASP-LOG、GHA-SECURE；另查项目实际监控 SDK 对应版本的官方隐私文档。
+Accept/extensions/disabled controls are not trusted validation; downloadable does not automatically mean exposure. Enforce server type/size/object authorization, bounded resources, active-content isolation, temporary access and cleanup/recovery. Test allowed use, denied access, expiration/cancel/retry and actual usable files. Missing policies/accounts stay blocked. Sources: OWASP-AUTH, OWASP-FE, SUPABASE-RLS.
 
-## 16 检查错误边界与监控
+## 11 Dependencies and supply chain
 
-- 观察证据：盘点渲染错误边界、事件与异步错误处理、根级异常、请求错误、资源加载、初始化故障、source map、release 标识与告警规则。
-- 验证动作：在隔离环境分别注入渲染异常、事件异常、异步拒绝、加载失败及业务返回失败；确认用户反馈、恢复入口与监控记录均发生。
-- 判定边界：按框架版本核查边界能力。React Error Boundary 不普遍覆盖事件处理、一般异步回调、SSR 或边界自身错误；对 transition 等版本相关例外查文档。不能用 window.onerror 替代所有已被捕获的错误上报。
-- 重构机制：按可独立恢复的区域布置边界；对业务失败、异步任务、请求与渲染分别处理；主动记录需要诊断的已处理异常；关联脱敏请求标识、版本与交互。按风险补真实用户与关键旅程监控。
-- 复验：确认出错区域可恢复、其余区域可继续；确认生产构建也能上报且 source map 匹配。明确监控无法证明“没有故障”：初始化前失败、浏览器终止、断网、采样或拦截都可能导致无数据。
-- 来源：REACT-BOUNDARY、OWASP-LOG。
+Read manifests/locks/runtime/install scripts/CDN code/component origins/licenses/advisories/CI permissions/update policy. Establish actual resolved/transitive versions and reachable affected paths using maintainer advisories when needed. Inspect installation before letting untrusted scripts access an environment with secrets.
 
-## 17 检查 CI、测试与证据含义
+Audit counts, old versions, suspicious names, and CVEs alone do not prove exploitability; locks/popularity/official branding do not prove safety. Remove unnecessary dependencies, use reproducible installs and controlled upgrades, restrict third-party/CI privileges, prefer trusted immutable action references, and recheck build/core paths/permissions. Do not force-upgrade everything to clear warnings. Sources: NPM-CI, GHA-SECURE.
 
-- 观察证据：读取真正被 CI 调用的脚本、用例、断言、mock、排除规则、重试、测试数据与报告；区分单元、组件、契约、集成、E2E、视觉、无障碍和性能证据。
-- 验证动作：追踪核心路径是否断言最终业务结果，例如保存后重新获取，而非只看 toast；在可控真实服务中运行少量关键链路，以 mock 覆盖异常并清楚标注被替代部分。
-- 判定边界：不要把截图相同、退出码为零、用例跑绿或高行覆盖率等同于功能正确、跨浏览器兼容或安全。核对命令是否实际执行，避免 skip、空测试、错误吞掉或无限重试造成假通过。
-- 重构机制：将高风险纯逻辑、状态组件、接口契约和关键旅程分层验证；隔离账号与测试数据，使用用户可见行为定位及等待断言；保存失败 trace，并让测试权限与生产凭据分离。
-- 复验：让修复对应的反例先可证明失败，再验证修复与合法路径；只扩大测试到受影响依赖和必要门禁。给任何“覆盖率”注明分母、环境和排除项，不把已检查页面比例混同行／分支覆盖率。
-- 补充边界：自动无障碍检查不能替代键盘、焦点和辅助技术人工验证；模拟设备不等于目标真机；浏览器 E2E 不等于接口越权审计；没有真实后端时不宣称持久化或权限已通过。
-- 来源：PLAYWRIGHT-BP、PLAYWRIGHT-A11Y、GHA-SECURE。
+## 12 Development, preview, production builds
 
-## 把发现转成可复验的重构任务
+Read real script chains, framework/builder/runtime versions, TS configuration, CI/deployment, mocks/proxies/APIs. Inspect side effects before typecheck/lint/tests/build. Check production output deep-link refresh, asset base, lazy-load errors, environment and supported browsers.
 
-为每个确认问题或待验证风险给出下列内容，并沿用主流程的发现编号与状态：
+Dev-server success does not prove build success; build success does not prove typecheck ran. Verify the actual pipeline rather than extrapolating one builder's defaults. Separate preview/production identities/endpoints/callbacks/secrets; validate required configuration. Reproduce a clean production build and inspect the artifact, preserving commands/versions/exit codes. Unavailable production headers/domains/callbacks remain blocked. Sources: VITE-FEAT, VITE-BUILD, VITE-ENV, TS-BASICS, NPM-CI.
 
-- 关联具体页面、状态、组件、接口或共享控制，写出观察证据与影响人群。
-- 写清前置身份、数据条件、最短安全复现、实际结果与期望结果；对推断风险标明缺失环节。
-- 指定应修改的模块与机制，并说明前端、服务端、数据库或平台各自任务；避免只写“加强安全”“加测试”。
-- 说明兼容与迁移顺序，记录既有行为、用户数据、旧客户端及其他页面的回归风险。
-- 给出复验输入、执行层、期望输出与失败判据；没有环境时给出可执行验证方案并保留 blocked。
-- 按影响、可达性、数据敏感性和修复依赖排列优先级；不要用历史 AI 质量百分比或缺少某个工具来计算问题严重程度。
-- 交付已验证范围、未验证范围及解除阻塞所需的最少材料；不要把前端审查报告表述为全系统安全认证。
+## 13 Caches and Service Workers
+
+Distinguish HTTP/CDN/SSR/query/memory/browser/Cache API. Inspect personalized keys/headers, scope/update/activation, and sensitive persistence. Test first/old-tab/offline/reconnect/account/tenant/new-release combinations in isolation.
+
+`no-store` does not clear every cache; application-managed Cache API entries need their own lifecycle. Avoid disabling all caching by default. Separate static/personalized strategies, include identity semantics, exclude or safely clear sensitive entries, preserve drafts, and support old clients and worker recovery. Verify no cross-account display, stale overwrite, or unsafe upgrade. Missing CDN/worker configuration limits coverage. Sources: RFC9111, MDN-CACHE, OWASP-HTML5, VITE-BUILD.
+
+## 14 Release and rollback
+
+Connect commit/build/deploy/assets/configuration/migrations/monitoring versions. Review flags/history/compatibility/rollback ownership. Exercise old/new client/API/chunk/configuration combinations only in an authorized isolated deployment.
+
+Frontend rollback does not roll back database/external effects/jobs. A hosting button does not prove recovery. Retain artifacts and compatibility windows, phase breaking migrations, define rollout/stop metrics and owners where needed. Recheck key journeys/identity/data after actual rollback; distinguish platform and application responsibilities. An unexecuted drill is a plan. Sources: VERCEL-ROLLBACK, VITE-BUILD, RFC9111.
+
+## 15 Logs, analytics, privacy
+
+Inspect console/errors/requests/events/replay/screenshots/forms/chat/document collection, SDK versions/purpose/recipients/filtering/access. Use synthetic sensitive markers to inspect emitted events and authorized receiving records across success/validation/error paths.
+
+Default redaction is not proof all data is protected; distinguish policy/contracts/law/engineering advice. Use allowlists/minimal collection, source-side exclusion of credentials/sensitive content, explicit replay masking/retention/deletion/access. Diagnostics failure must not break core tasks. Verify correlation without marker transfer, plus offline SDK behavior; absent receiver visibility limits claims. Sources: OWASP-LOG, GHA-SECURE, actual SDK privacy docs.
+
+## 16 Errors and monitoring
+
+Inspect render/event/async/request/resource/init boundaries, maps/releases/alerts. Inject safe isolated failures by category and verify user recovery plus monitoring.
+
+Check framework/version-specific catch scope; a render boundary does not automatically cover handlers, general async callbacks, SSR, or its own errors. Global handlers do not replace reporting handled failures. Isolate recoverable regions; correlate redacted request/release/action IDs. Recheck production reporting and maps. No events does not prove no failure: initialization gaps, shutdown, offline, sampling and blocking can hide it. Sources: REACT-BOUNDARY, OWASP-LOG.
+
+## 17 CI and evidence meaning
+
+Read actually invoked commands, assertions, mocks, excludes/skips/retries/data/reports. Distinguish unit/component/contract/integration/E2E/visual/accessibility/performance. Verify real business outcomes, such as saved values read back, rather than toast alone. Mocks should cover faults with substitutions disclosed; bounded real-service tests require a controlled target.
+
+Zero exit, matching screenshot, green tests, and line coverage cannot prove all behavior, browser support, or safety. Exclude swallowed errors, empty tests, skips, and unlimited retries from false completion. Use risk-appropriate layers, isolated data/credentials, observable locators/waits, failure traces, and counterexamples that fail before a fix.
+
+Automated accessibility cannot replace keyboard/focus/assistive-technology checks; emulation is not a real device; browser E2E is not an authorization audit; no real backend means no verified persistence/permissions. State denominator/environment/exclusions for every coverage claim. Sources: PLAYWRIGHT-BP, PLAYWRIGHT-A11Y, GHA-SECURE.
+
+## Repair tasks and handoff
+
+Each finding/risk needs affected units/boundary, evidence/impact, minimal safe preconditions/steps/actual/expected, missing links, exact owning mechanism and location, frontend/backend/platform roles, migration/compatibility, recheck layer/input/output/failure criteria, and blocked-unlock conditions. Prioritize consequence/reachability/data risk/dependencies, not generic tool counts or historical defect percentages. A frontend report is not whole-system security certification.

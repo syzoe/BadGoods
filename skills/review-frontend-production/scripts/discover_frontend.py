@@ -40,7 +40,7 @@ def candidate_files(root, limit):
         for folder in sorted(SKIP_DIRS):
             command.extend(["-g", f"!**/{folder}/**"])
         command.extend(["-g", "!**/.env*", "-g", "!**/*.pem", "-g", "!**/*.key"])
-        result = subprocess.run(command, cwd=root, text=True, capture_output=True, check=False)
+        result = subprocess.run(command, cwd=root, text=True, capture_output=True, check=False, shell=False)
         if result.returncode in (0, 1):
             paths = result.stdout.splitlines()
             if len(paths) > limit:
@@ -77,7 +77,11 @@ def discover(root, max_files=20000, max_bytes=262144):
         ):
             continue
         try:
-            path.resolve().relative_to(root)
+            resolved = path.resolve()
+            resolved.relative_to(root)
+            if resolved.name.startswith(".env") or resolved.suffix in {".pem", ".key"}:
+                skipped.append({"path": relative, "reason": "resolves to an excluded credential file"})
+                continue
             if not path.is_file() or path.stat().st_size > max_bytes:
                 skipped.append({"path": relative, "reason": "not a regular file or exceeds size bound"})
                 continue

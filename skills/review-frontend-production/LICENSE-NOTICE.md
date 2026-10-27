@@ -1,7 +1,7 @@
-# 使用许可状态
+# License status
 
-本次整理没有替原作者选择或授予 MIT、Apache、CC 等开放许可，也没有变更既有权利归属。
+No MIT, Apache, Creative Commons, or other open-source license has been selected or granted by this packaging and editing work. Existing ownership is unchanged.
 
-此包可供原作者分享和展示；接收者不能仅凭文件可下载就推定已获商业使用、修改或再分发授权。公开发布为可自由复用的开源项目之前，应由权利人选定许可并补充版权声明。本说明不是开源许可证。
+The rights holder may share and demonstrate the package. Recipients must not infer permission for commercial use, modification, or redistribution merely because the files are downloadable. Before presenting this as freely reusable open-source software, the rights holder should select a license and add a copyright notice. This notice is not an open-source license.
 
-引用的官方文档链接仅作参考，其内容与商标适用各自权利声明。
+Linked official documentation and trademarks remain subject to their respective rights and terms.

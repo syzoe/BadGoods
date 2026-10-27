@@ -1,14 +1,14 @@
-# 快速体检
+# Quick review
 
-目标是优先发现影响核心任务的问题，输出简短且可复核的部分审查。遵守 SKILL.md 第 1 节的证据、权限与保留设计约定；其余完整台账、逐实例蓝图和完整性门槛不适用于本模式。
+Find risks in selected core journeys and deliver a concise, inspectable partial review. Follow the evidence, permission, and design-preservation rules in `SKILL.md`. Full-ledger, per-instance blueprint, and full-coverage gates are not required here.
 
-1. 记录项目位置、版本、访问能力、用户目标和已知限制。说明本次是 quick，不承诺全站覆盖。
-2. 先看目录、路由和核心入口，列出已发现页面；从用户指定范围或主要用户旅程选择本次检查对象，写清选择理由及未查页面。发现脚本可选，输出只是候选。
-3. 检查所选旅程的成功、失败与恢复，以及直接相关的交互、状态、可访问性、数据和权限边界。按实际对象读取组件手册或专题参考，不一次加载全套文档。
-4. 每项问题给定位、证据类型、复现条件或源码推理、实际与预期、影响、优先级、修复方向和复验方法。源码风险与运行复现分开。
-5. 先交付影响最大的发现，再给其余发现与未验证项。没有发现也说明实际检查范围，不把“未发现”写成“没有缺陷”。不设固定问题数量，不为了填表制造问题。
-6. 输出一份 quick-review.md 即可：范围与基线、主要发现、修复顺序、未查/阻塞范围、下一步。证据按需要单独保存。若用户已给时间预算，到点保留未查项并明确部分结论。
+1. Record project location, version, access, user goal, and limits. State that the depth is `quick` and does not establish whole-site coverage.
+2. Inspect directories, routes, and main entry points. List discovered pages, select the requested journeys or highest-impact tasks, and explain selection and omissions. The optional discovery helper produces candidates only.
+3. Check success, failure, and recovery, plus directly related interactions, state, accessibility, data, and permission boundaries. Load only the relevant component/topic sections.
+4. Give each finding a location, evidence kind, reproduction conditions or source reasoning, actual/expected behavior, impact, priority, repair direction, and verification. Separate static risks from executed reproduction.
+5. Lead with the largest user impact. Include other findings and unverified areas without a fixed finding quota. With no findings, report the checked scope; “none found” does not mean “no defects.”
+6. Deliver `quick-review.md`: scope/baseline, findings, fix order, unchecked/blocked areas, next actions. Save evidence separately as needed. Honor an explicit time budget and preserve unfinished checks.
 
-quick 不要求运行 --require-plan、--require-complete 或 --require-ready。若已经使用台账，project.review_depth 写 quick；不得用这个字段绕过完整审查门槛。
+Do not require `--require-plan`, `--require-complete`, or `--require-ready`. If using a ledger, set `project.review_depth` to `quick`; never use it to evade a requested full review.
 
-升级 full：把发现与原始证据迁入稳定 ID 台账，逐项补齐页面、定义、实例、场景与方案；用户明确要求升级时继续执行，不重复索取审查许可。
+To upgrade to full, preserve findings and original evidence under stable IDs, then complete pages, definitions, instances, scenarios, and plans. Continue an authorized upgrade without requesting review permission again.

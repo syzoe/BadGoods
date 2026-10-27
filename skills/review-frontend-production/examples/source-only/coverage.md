@@ -1,21 +1,21 @@
-# 前端审查覆盖索引
+# Frontend review coverage index
 
-项目：虚构便签：仅源码示例
+Project: Fictional notes: source-only example
 
-目标：examples/source-only/project
+Target: examples/source-only/project
 
-访问范围：source_only；发现状态：reconciled
+Access: source_only; inventory: reconciled
 
-> 本文件由台账生成。结构校验不验证证据真实性，也不等于产品认证。
+> Generated from the ledger. Structural validation does not authenticate evidence or certify a product.
 
-## 覆盖结论
+## Coverage conclusions
 
 - schema_valid: True
 - audit_coverage_closed: False
 - plan_complete: True
 - production_gates_satisfied: False
 
-## 分母与状态
+## Counts and statuses
 
 ~~~json
 {
@@ -38,46 +38,46 @@
 }
 ~~~
 
-## 页面与组件实例
+## Pages and component instances
 
-| 页面 | 路由 | 组件实例 | 已通过 / 失败 / 阻塞 / 未检查 / 不适用 |
+| Page | Route | Instances | Passed / Failed / Blocked / Not checked / Not applicable |
 |---|---|---|---|
-| PAGE-001 虚构便签 | / | 3 | 0 / 1 / 27 / 0 / 0 |
+| PAGE-001 Fictional notes | / | 3 | 0 / 1 / 27 / 0 / 0 |
 
-## 组件处置
+## Component decisions
 
-| 实例 | 蓝图 | 处置 | 任务 | 理由 |
+| Instance | Blueprint | Decision | Tasks | Rationale |
 |---|---|---|---|---|
-| CMP-001 | BP-001 | investigate | TASK-001 | 保留源码设计，补运行验证 |
-| CMP-002 | BP-002 | investigate | TASK-001 | 保留源码设计，补运行验证 |
-| CMP-003 | BP-003 | refactor | TASK-001 | 按钮缺少清空处理 |
+| CMP-001 | BP-001 | investigate | TASK-001 | Preserve source design and gather runtime evidence |
+| CMP-002 | BP-002 | investigate | TASK-001 | Preserve source design and gather runtime evidence |
+| CMP-003 | BP-003 | refactor | TASK-001 | The button has no clear handler |
 
-## 问题索引
+## Findings
 
-| 问题 | 级别 | 置信度 | 状态 | 页面 / 实例 |
+| Finding | Priority | Confidence | Status | Pages / Instances |
 |---|---|---|---|---|
-| FND-001 清空按钮缺少清空处理 | P2 | confirmed | open | PAGE-001, CMP-003 |
+| FND-001 Clear button has no clear handler | P2 | confirmed | open | PAGE-001, CMP-003 |
 
-## 任务顺序
+## Task order
 
-| 任务 | 阶段 | 负责人 | 依赖 | 状态 |
+| Task | Phase | Owner | Dependencies | Status |
 |---|---|---|---|---|
-| TASK-001 实现清空并验证表单流程 | 1 | 前端 |  | planned |
+| TASK-001 Implement clear and verify the form journey | 1 | Frontend |  | planned |
 
-## 发布门槛
+## Release gates
 
-| 门槛 | 必需 | 状态 | 证据 / 理由 |
+| Gate | Required | Status | Evidence / Reason |
 |---|---|---|---|
-| 核心旅程、异常恢复及关键可访问性已验证 | True | not_checked |   |
-| 身份、对象、租户与字段权限在受信任边界执行 | True | not_checked |   |
-| 写操作的一致性、重试、取消与结果未知语义已验证 | True | not_checked |   |
-| 生产构建、配置与依赖安装可复现 | True | not_checked |   |
-| 目标环境下的性能、布局与长时间使用符合约定 | True | not_checked |   |
-| 错误可诊断，监控与日志数据满足隐私约定 | True | not_checked |   |
-| 发布、新旧版本兼容与恢复路径已验证 | True | not_checked |   |
-| 审查范围、基线一致性及尚存风险已明确 | True | not_checked |   |
+| Core journeys, failure recovery, and essential accessibility verified | True | not_checked |   |
+| Identity, object, tenant, and field permissions enforced at trusted boundaries | True | not_checked |   |
+| Write consistency, retry, cancellation, and unknown-outcome semantics verified | True | not_checked |   |
+| Production build, configuration, and dependency installation reproducible | True | not_checked |   |
+| Performance, layout, and long-session behavior meet target-environment goals | True | not_checked |   |
+| Errors diagnosable; monitoring and logs meet privacy requirements | True | not_checked |   |
+| Release, old/new version compatibility, and recovery verified | True | not_checked |   |
+| Review scope, baseline consistency, and remaining risks explicit | True | not_checked |   |
 
-## 缺口
+## Gaps
 
 
 ## warnings
@@ -85,6 +85,6 @@
 - Only one inventory channel: justify discovery limitations; the script cannot establish completeness.
 - Limited access: do not claim a full source-and-runtime production review.
 
-## 下一步
+## Next actions
 
-- 实现清空处理，执行浏览器场景；补齐其他 blocked 检查
+- Implement clear, execute the browser scenario, and complete other blocked checks

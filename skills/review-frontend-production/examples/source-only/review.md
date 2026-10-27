@@ -1,27 +1,27 @@
-# 虚构便签审查
+# Fictional notes review
 
-模式：full / audit_plan；访问：source_only；基线：fixture-v1。仅审查随包单页 HTML，没有运行浏览器。
+Depth/mode: `full / audit_plan`. Access: `source_only`. Current baseline: `fixture-v2-en`. Only the bundled single-page HTML was inspected; no browser was run. Historical evidence retains its original baseline and timestamp.
 
-## 范围与证据
+## Scope and evidence
 
-登记 1 页、3 个组件定义和 3 个实例；源码读取 EV-001，静态解析测试 EV-002。静态测试通过不等于浏览器交互通过。完整索引见 coverage.md，具体蓝图、实例处置与任务见 audit.json。
+One page, three definitions, three instances. EV-003 records source inspection of the English fixture; EV-004 records the executed static parser. EV-001/EV-002 preserve the earlier fixture-v1 observations. Static-test success does not prove browser interaction. See `coverage.md` for the index and `audit.json` for blueprints, decisions, and tasks.
 
-## 发现
+## Finding
 
-FND-001，P2，源码确认：project/index.html 第 8 行的清空按钮为 type=button，但完整文件没有事件处理或脚本。名称承诺清空功能，源码未实现该行为。运行影响未复现。
+**FND-001 · P2 · confirmed in source:** the clear button at `project/index.html:8` has `type="button"`, but the complete file contains no handler or script. Its accessible name promises to clear the note; that behavior is absent. Browser impact was not executed.
 
-建议在同表单内绑定清空逻辑，保留现有输入标签和按钮名称。不要引入框架或后端。任务 TASK-001，负责人角色：前端。
+Bind a local clear action to the input in the same form, preserving its label and the button's accessible name. No framework or backend is needed. TASK-001; owner role: Frontend.
 
-## 实例与方案
+## Instance plans
 
-- 表单 CMP-001：保留结构，补输入与清空组合验证，处置 investigate。
-- 输入 CMP-002：静态标签关联正确，运行编辑和焦点待验证，处置 investigate。
-- 按钮 CMP-003：补清空处理，处置 refactor。
+- CMP-001, form: preserve the structure and verify the combined input/clear task; `investigate`.
+- CMP-002, input: label association is statically valid; editing/focus remain unverified; `investigate`.
+- CMP-003, button: add clear handling; `refactor`.
 
-每个定义的十项契约见 BP-001 至 BP-003；每个实例关联 SCN-001 与 TASK-001。
+BP-001 through BP-003 contain each definition's ten contract dimensions. Every instance links to SCN-001 and TASK-001.
 
-## 验收与交接
+## Acceptance and handoff
 
-输入虚构文字后，用鼠标和键盘激活清空按钮，核对输入值与焦点。SCN-001 尚未运行，状态 blocked；TASK-001 尚未实施。其余检查均保留待验证，不宣称生产就绪。
+Enter fictional text, activate clear with mouse and keyboard, then check value and focus. SCN-001 remains blocked and TASK-001 remains planned. Preserve other dimension gaps rather than claiming readiness.
 
-结论：源码范围已登记，方案覆盖已满足；完整审查覆盖和发布条件未满足。继续条件是补充浏览器执行与相关维度的实际证据。
+The declared source inventory and component plan are present. Full audit coverage and release conditions are not met. Continue with browser execution and actual evidence for the remaining checks.

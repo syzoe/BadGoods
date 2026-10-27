@@ -10,6 +10,7 @@ import argparse
 import copy
 import json
 import sys
+import tempfile
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -50,14 +51,14 @@ EVIDENCE_KINDS = {"source", "runtime", "test", "measurement", "artifact", "speci
 DISPOSITIONS = {"retain", "configure", "refactor", "replace", "remove", "investigate"}
 FINDING_CONFIDENCE = {"confirmed", "probable", "needs_validation"}
 REQUIRED_GATES = (
-    ("GATE-001", "核心旅程、异常恢复及关键可访问性已验证"),
-    ("GATE-002", "身份、对象、租户与字段权限在受信任边界执行"),
-    ("GATE-003", "写操作的一致性、重试、取消与结果未知语义已验证"),
-    ("GATE-004", "生产构建、配置与依赖安装可复现"),
-    ("GATE-005", "目标环境下的性能、布局与长时间使用符合约定"),
-    ("GATE-006", "错误可诊断，监控与日志数据满足隐私约定"),
-    ("GATE-007", "发布、新旧版本兼容与恢复路径已验证"),
-    ("GATE-008", "审查范围、基线一致性及尚存风险已明确"),
+    ("GATE-001", "Core journeys, failure recovery, and essential accessibility verified"),
+    ("GATE-002", "Identity, object, tenant, and field permissions enforced at trusted boundaries"),
+    ("GATE-003", "Write consistency, retry, cancellation, and unknown-outcome semantics verified"),
+    ("GATE-004", "Production build, configuration, and dependency installation reproducible"),
+    ("GATE-005", "Performance, layout, and long-session behavior meet target-environment goals"),
+    ("GATE-006", "Errors diagnosable; monitoring and logs meet privacy requirements"),
+    ("GATE-007", "Release, old/new version compatibility, and recovery verified"),
+    ("GATE-008", "Review scope, baseline consistency, and remaining risks explicit"),
 )
 
 
@@ -72,9 +73,20 @@ def text_present(value):
 def write_json(path, value):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(path.name + ".writing")
-    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    temporary.replace(path)
+    temporary = None
+    try:
+        # A unique sibling avoids clobbering unrelated files and symlink targets.
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=path.parent,
+            prefix=f".{path.name}.", suffix=".writing", delete=False,
+        ) as stream:
+            temporary = Path(stream.name)
+            json.dump(value, stream, ensure_ascii=False, indent=2)
+            stream.write("\n")
+        temporary.replace(path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def load_json(path):
@@ -92,12 +104,12 @@ def skeleton(name):
             "mode": "audit_plan", "review_depth": "full", "access_mode": "source_only",
             "baseline": {"source_ref": "unknown", "runtime_ref": "unknown", "observed_at": now()},
             "inventory_status": "discovering", "inventory_sources": [],
-            "scope": "待根据用户请求与实际项目明确", "out_of_scope": [],
+            "scope": "Pending definition from the user request and actual project", "out_of_scope": [],
             "production_profile": {}, "assumptions": [],
         },
         **{key: [] for key in COLLECTIONS},
         "progress": {
-            "current_page": None, "completed_batches": [], "next_actions": ["发现并核对全部页面与组件"],
+            "current_page": None, "completed_batches": [], "next_actions": ["Discover and reconcile all pages and components"],
             "unresolved_access": [], "last_updated": now(),
         },
     }
@@ -152,7 +164,7 @@ def sync_checks(data):
             used.add(ident)
             data["checks"].append({
                 "id": ident, "scope": scope, "target_id": target, "dimension": dimension,
-                "question": f"待细化：{target} 的 {dimension} 在哪些条件下满足哪些具体预期？",
+                "question": f"Refine: under which conditions does {target} meet which specific expectations for {dimension}?",
                 "status": "not_checked", "evidence_ids": [], "scenario_ids": [],
                 "finding_ids": [], "reason": "",
             })
@@ -383,8 +395,8 @@ def validate(data):
                     errors.append(f"{label}.context.{key} must be a non-empty string or string list.")
                     descriptions = []
                 if descriptions and all(
-                    value.strip().lower().rstrip(":：").strip()
-                    in {"n/a", "na", "not_applicable", "not applicable", "不适用"}
+                    value.strip().lower().rstrip(":\uff1a").strip()
+                    in {"n/a", "na", "not_applicable", "not applicable", "\u4e0d\u9002\u7528"}
                     for value in descriptions
                 ):
                     errors.append(f"{label}.context.{key} must explain why it is not applicable.")
@@ -741,19 +753,19 @@ def escape(value):
 def render(data, result):
     project = data.get("project", {})
     lines = [
-        "# 前端审查覆盖索引", "",
-        f"项目：{escape(project.get('name'))}", "",
-        f"目标：{escape(project.get('target'))}", "",
-        f"访问范围：{escape(project.get('access_mode'))}；发现状态：{escape(project.get('inventory_status'))}", "",
-        "> 本文件由台账生成。结构校验不验证证据真实性，也不等于产品认证。", "",
-        "## 覆盖结论", "",
+        "# Frontend review coverage index", "",
+        f"Project: {escape(project.get('name'))}", "",
+        f"Target: {escape(project.get('target'))}", "",
+        f"Access: {escape(project.get('access_mode'))}; inventory: {escape(project.get('inventory_status'))}", "",
+        "> Generated from the ledger. Structural validation does not authenticate evidence or certify a product.", "",
+        "## Coverage conclusions", "",
     ]
     for key in ("schema_valid", "audit_coverage_closed", "plan_complete", "production_gates_satisfied"):
         lines.append(f"- {key}: {result[key]}")
-    lines.extend(["", "## 分母与状态", "", "~~~json",
+    lines.extend(["", "## Counts and statuses", "", "~~~json",
                   json.dumps(result["counts"], ensure_ascii=False, indent=2), "~~~", ""])
-    lines.extend(["## 页面与组件实例", "",
-                  "| 页面 | 路由 | 组件实例 | 已通过 / 失败 / 阻塞 / 未检查 / 不适用 |",
+    lines.extend(["## Pages and component instances", "",
+                  "| Page | Route | Instances | Passed / Failed / Blocked / Not checked / Not applicable |",
                   "|---|---|---|---|"])
     instances = [r for r in data.get("instances", []) if isinstance(r, dict)]
     checks = [r for r in data.get("checks", []) if isinstance(r, dict)]
@@ -768,14 +780,14 @@ def render(data, result):
         )
         values = " / ".join(str(counts[s]) for s in ("passed", "failed", "blocked", "not_checked", "not_applicable"))
         lines.append(f"| {escape(page.get('id'))} {escape(page.get('title'))} | {escape(page.get('route'))} | {len(members)} | {values} |")
-    lines.extend(["", "## 组件处置", "", "| 实例 | 蓝图 | 处置 | 任务 | 理由 |", "|---|---|---|---|---|"])
+    lines.extend(["", "## Component decisions", "", "| Instance | Blueprint | Decision | Tasks | Rationale |", "|---|---|---|---|---|"])
     for row in data.get("component_plans", []):
         if not isinstance(row, dict):
             continue
         values = (row.get("instance_id"), row.get("blueprint_id"), row.get("disposition"),
                   ", ".join(row.get("task_ids", [])), row.get("rationale"))
         lines.append("| " + " | ".join(escape(x) for x in values) + " |")
-    lines.extend(["", "## 问题索引", "", "| 问题 | 级别 | 置信度 | 状态 | 页面 / 实例 |",
+    lines.extend(["", "## Findings", "", "| Finding | Priority | Confidence | Status | Pages / Instances |",
                   "|---|---|---|---|---|"])
     for row in data.get("findings", []):
         if not isinstance(row, dict):
@@ -784,18 +796,18 @@ def render(data, result):
                   row.get("severity"), row.get("confidence"), row.get("status"),
                   ", ".join(row.get("page_ids", []) + row.get("instance_ids", [])))
         lines.append("| " + " | ".join(escape(x) for x in values) + " |")
-    lines.extend(["", "## 任务顺序", "", "| 任务 | 阶段 | 负责人 | 依赖 | 状态 |",
+    lines.extend(["", "## Task order", "", "| Task | Phase | Owner | Dependencies | Status |",
                   "|---|---|---|---|---|"])
     for row in sorted(data.get("tasks", []), key=lambda r: (r.get("phase", 0), r.get("id", ""))):
         values = (str(row.get("id", "")) + " " + str(row.get("title", "")),
                   row.get("phase"), row.get("owner"), ", ".join(row.get("depends_on", [])), row.get("status"))
         lines.append("| " + " | ".join(escape(x) for x in values) + " |")
-    lines.extend(["", "## 发布门槛", "", "| 门槛 | 必需 | 状态 | 证据 / 理由 |", "|---|---|---|---|"])
+    lines.extend(["", "## Release gates", "", "| Gate | Required | Status | Evidence / Reason |", "|---|---|---|---|"])
     for row in data.get("release_gates", []):
         values = (row.get("name"), row.get("required"), row.get("status"),
                   ", ".join(row.get("evidence_ids", [])) + " " + row.get("reason", ""))
         lines.append("| " + " | ".join(escape(x) for x in values) + " |")
-    lines.extend(["", "## 缺口", ""])
+    lines.extend(["", "## Gaps", ""])
     for key, values in result["gaps"].items():
         if values:
             lines.append(f"- {key}: {escape(json.dumps(values, ensure_ascii=False))}")
@@ -803,7 +815,7 @@ def render(data, result):
         if result[group]:
             lines.extend(["", f"## {group}", ""])
             lines.extend("- " + escape(message) for message in result[group])
-    lines.extend(["", "## 下一步", ""])
+    lines.extend(["", "## Next actions", ""])
     progress = data.get("progress", {})
     if isinstance(progress, dict):
         lines.extend("- " + escape(x) for x in progress.get("next_actions", []))

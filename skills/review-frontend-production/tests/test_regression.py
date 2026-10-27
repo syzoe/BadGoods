@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT=Path(__file__).resolve().parents[1]
 def load(name):
@@ -58,13 +59,40 @@ class Regression(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             p=Path(tmp)/'audit.json'
             def run(*args):
-                return subprocess.run([sys.executable,'-B',str(ROOT/'scripts/audit_ledger.py'),*map(str,args)],capture_output=True).returncode
+                return subprocess.run([sys.executable,'-B',str(ROOT/'scripts/audit_ledger.py'),*map(str,args)],capture_output=True,shell=False).returncode
             self.assertEqual(run('init',p,'--name','test'),0)
             self.assertEqual(run('init',p,'--name','test'),1)
             self.assertEqual(run('check',p),0)
             self.assertEqual(run('check',p,'--require-complete'),2)
             self.assertEqual(run('render',p,'--out',p),1)
             p.write_text('{bad');self.assertEqual(run('check',p),1)
+    def test_save_preserves_unrelated_sidecar(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp)/'audit.json';sidecar=p.with_name(p.name+'.writing')
+            sidecar.write_text('unrelated data',encoding='utf-8')
+            L.write_json(p,{'saved':True})
+            self.assertEqual(sidecar.read_text(encoding='utf-8'),'unrelated data')
+            self.assertEqual(json.loads(p.read_text(encoding='utf-8')),{'saved':True})
+    def test_save_does_not_follow_sidecar_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp)/'audit.json';target=Path(tmp)/'private.txt'
+            target.write_text('keep private',encoding='utf-8')
+            sidecar=p.with_name(p.name+'.writing');sidecar.symlink_to(target)
+            L.write_json(p,{'saved':True})
+            self.assertEqual(target.read_text(encoding='utf-8'),'keep private')
+            self.assertTrue(sidecar.is_symlink())
+    def test_failed_save_preserves_ledger_and_cleans_temporary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            p=Path(tmp)/'audit.json';p.write_text('{"original":true}',encoding='utf-8')
+            with self.assertRaises(TypeError): L.write_json(p,{'invalid':object()})
+            self.assertEqual(json.loads(p.read_text(encoding='utf-8')),{'original':True})
+            self.assertEqual(list(Path(tmp).iterdir()),[p])
+    def test_default_reports_are_english(self):
+        d=L.skeleton('Example');L.sync_checks(d)
+        report=L.render(d,L.validate(d))
+        self.assertIn('# Frontend review coverage index',report)
+        self.assertIn('Discover and reconcile all pages and components',report)
+        self.assertTrue(d['checks'][0]['question'].startswith('Refine:'))
     def test_discovery_candidates(self):
         with tempfile.TemporaryDirectory() as tmp:
             p=Path(tmp);(p/'App.tsx').write_text('export function App(){return <a href="/about">About</a>}')
@@ -77,7 +105,19 @@ class Regression(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp,tempfile.TemporaryDirectory() as outside:
             p=Path(tmp);s=Path(outside)/'external.tsx';s.write_text('const ExternalSecret = 1')
             (p/'link.tsx').symlink_to(s);(p/'.env').write_text('SECRET=fixture')
-            r=json.dumps(D.discover(p));self.assertNotIn('ExternalSecret',r);self.assertNotIn('SECRET',r)
+            with mock.patch.object(D.shutil,'which',return_value=None):
+                r=json.dumps(D.discover(p))
+            self.assertNotIn('ExternalSecret',r);self.assertNotIn('SECRET',r)
+    def test_internal_credential_symlink_excluded(self):
+        for filename in ('.env','private.key'):
+            with self.subTest(filename=filename),tempfile.TemporaryDirectory() as tmp:
+                p=Path(tmp);secret=p/filename
+                secret.write_text('const LeakedCredential = 1',encoding='utf-8')
+                (p/'Alias.tsx').symlink_to(secret)
+                with mock.patch.object(D.shutil,'which',return_value=None):
+                    r=D.discover(p)
+                self.assertNotIn('LeakedCredential',json.dumps(r))
+                self.assertTrue(any(x['path']=='Alias.tsx' for x in r['skipped']))
     def test_large_file_skipped(self):
         with tempfile.TemporaryDirectory() as tmp:
             p=Path(tmp);(p/'App.tsx').write_text('x'*100)

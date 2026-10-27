@@ -1,130 +1,90 @@
-# 发现与逐页工作法
+# Discovery and page-by-page review
 
-## 目录
+## 1. Inputs and goals
 
-1. 输入与目标
-2. 发现页面
-3. 拆分组件
-4. 构建场景
-5. 逐页审查顺序
-6. 证据与问题核实
-7. 覆盖、协作和结束
+Read inputs from the session and project. Do not ask again for information already supplied. Without a project, explain a method rather than inventing an actual inventory.
 
-## 1. 输入与目标
-
-从现有会话和项目读取输入，不重复索取已有信息。没有项目时可建立方法，但不可假造实际页面清单。
-
-| 可访问内容 | 可做 | 必须保留的缺口 |
+| Access | What it supports | Gaps to preserve |
 |---|---|---|
-| 源码 + 运行 | 静态、动态和跨边界核对 | 实际缺失的服务、设备、生产配置等 |
-| 仅源码 | 路由、实现、确定的静态缺陷、目标设计 | 运行交互、真实API、任务可访问性、实测性能 |
-| 仅运行网址 | 观察到的页面、状态、网络与行为 | 隐藏路由、源码结构、服务端控制、构建发布 |
-| 截图/设计稿 | 已展示状态的布局、内容、层级风险 | 未显示状态、时序、性能、数据和安全实现 |
+| Source + runtime | Static, executed, and cross-boundary checks | Missing services, devices, deployment configuration |
+| Source only | Routes, implementation, definite static defects, proposed design | Live interaction, real APIs, task accessibility, measured performance |
+| Runtime only | Observed pages, states, network, behavior | Hidden routes, architecture, server controls, build/release |
+| Screenshots/designs | Layout, content, hierarchy in shown states | Unshown states, timing, performance, data/security implementation |
 
-在 production_profile 记录受众、核心任务、操作可逆性、数据风险、身份/租户、支持环境与输入、规模、SEO/SSR、可访问性、发布恢复目标。
+Record audience, tasks, reversibility, data risk, identity/tenancy, supported environments/inputs, scale, SEO/SSR needs, accessibility, and recovery in `production_profile`. Do not invent concurrency, latency, memory, compliance, or SLA promises. Continue checks independent of unknown conditions.
 
-没有依据时不自行承诺并发、延迟、内存、合规或 SLA。给待确认条件，继续不依赖它们的检查。
+Separate current implementation, design intent, API guarantees, and proposed rules. Show conflicts instead of silently selecting a standard and declaring the other wrong.
 
-把当前实现、设计意图、接口保证、建议的新约定分开。存在冲突时显示冲突，不悄悄选一种再把另一种判错。
+## 2. Discover pages
 
-## 2. 发现页面
+**Static channels:** framework version; file/table routes; dynamic paths; lazy imports; redirects/fallbacks; layouts; nested/parallel/intercepting routes; 404/error/loading boundaries; login return paths; menus, links, button navigation, notifications and deep links; query/hash views, wizards, drawers, modals and tabs with independent tasks; roles, tenants, subscriptions, flags, experiments and server configuration; in-scope iframes, sub-apps, admin areas, subdomains and mobile variants.
 
-### 静态渠道
+For dynamic IDs, cover valid, missing, expired, deleted, unauthorized, and materially different business types as equivalence classes.
 
-- 检查框架版本、文件路由、路由表、动态path、lazy import、重定向与fallback。
-- 检查layout、嵌套/平行/拦截路由、404/error/loading边界、登录回跳。
-- 检查导航、菜单、页内链接、按钮导航、深链接和通知入口。
-- 检查query/hash视图、wizard、drawer、modal、tab的独立任务状态。
-- 检查角色、租户、订阅、feature flag、实验和服务端配置控制的页面。
-- 检查iframe、子应用、管理端、子域和移动版本是否在用户范围内。
-- 检查动态ID的有效、缺失、失效、删除、无权限和业务类型等价类。
+**Runtime channels:** traverse authorized navigation and in-page transitions; open deep links and refresh/back/forward; compare available roles; open reachable overlays, tabs, disclosures, menus, retries, and secondary settings. Inspect controls appearing only after scrolling, hover/focus, selection, or bulk actions. Record URL, title, state, version, and `EV`. Unavailable role branches remain blocked. Do not claim runtime traversal without execution.
 
-### 运行渠道
+**Reconciliation:** distinguish source-only routes, runtime surfaces not yet located in source, and documented surfaces not found in implementation. Resolve differences as undeployed, flagged, permission-restricted, obsolete, or still unknown.
 
-- 从已授权入口遍历导航和页内跳转；直接打开深链接、刷新、后退、前进。
-- 使用已授权角色核对差异，没有账号的分支保留blocked。
-- 打开所有可达弹层、tab、折叠、操作菜单、空态、错误重试与二级设置。
-- 检查滚动、hover、focus、选中、批量操作后才出现的控件。
-- 记录URL、标题、状态、版本、来源EV；若不能运行，不声称已经遍历。
+Use `reconciled` only after available discovery channels and discrepancies have been addressed, with limitations disclosed. Use `limited` if undiscovered role pages may remain. Record promised-but-unimplemented prototype features as product gaps; do not invent pages and pretend they exist.
 
-### 对账
+## 3. Split components
 
-列明代码有而运行不可达、运行有而源码未定位、文档有而实现未找到三类差异；确认是未发布、flag、权限、废弃或待定位。
+Use page → task region → composite → leaf responsibility, not file count. Include shells/navigation/toolbars/headings, fields/help/errors/submit/cancel, tables/cell types/row actions/selection/pagination, search/filter/sort, overlays, feedback, files/editors/media/charts, AI messages/citations/tools/jobs.
 
-已处理发现渠道差异并披露范围限制后才用 reconciled。仍可能存在未能发现的角色页面时用 limited，不把已知分母当全站总量。
+Use `DEF` for shared implementations and `CMP` for logical page instances, including inline controls. Locate inline units in their parent file and symbol. For every shared instance inspect:
 
-对未实现的原型功能登记产品缺口/待确认规则，不补出想象中的页面再假装它已存在。
+1. Props, callbacks, and contract.
+2. Object, role, and tenant identity.
+3. Names, labels, descriptions, IDs, and error relationships.
+4. Parent clipping, size, scrolling, stacking, theme, and focus return.
+5. Identity after unmount/remount, cache reuse, and route changes.
+6. Instance-specific effects and trust boundaries.
 
-## 3. 拆分组件
+Include wrapper styles, DOM order, and bubbling in the responsible parent instance. Group repeated records only with justified equivalence; different permission, layout, data, or behavior contracts remain distinct.
 
-按页面、任务区域、复合组件、叶子职责拆分，不用文件数量代替UI结构。
+## 4. Construct scenarios
 
-至少覆盖：页壳、导航、工具栏、标题说明；表单/字段/帮助/错误/提交取消；表格各单元格类型/行操作/选择/分页；搜索筛选排序；弹窗抽屉浮层；加载空态错误反馈；文件编辑器媒体图表；AI流式回答/引用/工具/作业。
+Define expectations before execution. Do not derive correctness solely from current behavior. Create page/instance scenarios and separate cross-page scenarios.
 
-共享实现用DEF，结构不同的使用位置用CMP。inline控件即使没有组件文件也有CMP，定位到父文件和符号。
-
-多个CMP共享DEF/BP时，仍逐实例检查：
-
-1. props/回调与契约。
-2. 当前对象、身份与租户。
-3. name/label/description/ID及错误引用。
-4. 父裁剪、尺寸、滚动、层级、主题和焦点回落。
-5. 卸载、重新挂载、缓存复用、路由切换后的组件身份。
-6. 实例特殊分支的副作用和安全边界。
-
-纯包装节点的样式、DOM顺序和冒泡纳入父CMP。重复记录只按有依据的等价类合并；不同权限、布局、数据或交互契约不合并。
-
-## 4. 构建场景
-
-为每个页面和实例建SCN，跨页流程另建SCN。先定预期再操作，不把当前实现反推成正确标准。
-
-| 轴 | 应考虑的等价类 |
+| Axis | Relevant classes |
 |---|---|
-| 身份 | 未登录、本人、其他用户、其他租户、管理员、过期 |
-| 数据 | 未加载、空、1条、普通规模、约定上限、超限、长文本、缺字段、零、未知枚举 |
-| 网络 | 正常、延迟、失败、离线、恢复、乱序、部分成功、超时未知 |
-| 时序 | 单次、重复、逆向、中断、并发、离开返回、刷新、多标签页 |
-| 输入 | 鼠标、键盘、触控、中文IME、粘贴、自动填充、辅助技术 |
-| 环境 | 支持设备/浏览器、窄容器、缩放、主题、减少动态效果 |
-| 生命周期 | 首次进入、后台恢复、长时间使用、旧页面、新旧接口共存 |
+| Identity | Anonymous, self, another user, another tenant, admin, expired session |
+| Data | Not loaded, empty, one item, typical, agreed limit, over limit, long/missing/zero/unknown values |
+| Network | Normal, delayed, failed, offline/recovered, reordered, partial success, unknown timeout outcome |
+| Ordering | Single, repeated, reversed, interrupted, concurrent, leave/return, refresh, multiple tabs |
+| Input | Mouse, keyboard, touch, IME, paste, autofill, assistive technology |
+| Environment | Supported browsers/devices, narrow containers, zoom, themes, reduced motion |
+| Lifecycle | Initial entry, background resume, long sessions, old clients and new APIs |
 
-不做无意义全笛卡尔积。覆盖实际分支、单轴边界，高风险组合加场景：过期会话+重复写请求、切租户+旧响应迟到、嵌套弹窗+键盘+触发器被删除。
+Avoid a meaningless full Cartesian product. Cover actual branches and single-axis boundaries, adding high-impact combinations such as expired session + repeated writes, tenant switch + late response, or nested modal + keyboard + deleted trigger. Explain selection and uncovered combinations; do not silently sample different pages/contracts.
 
-记录选择依据和未覆盖范围。普通风险可用等价类/成对组合降低重复，不得未经说明抽样不同页面或不同契约实例。
+A scenario states identity/version/environment, ordered actions and responses, observable outcomes, prohibited side effects, recovery, and actual evidence. Unexecuted scenarios stay `planned` or `blocked`.
 
-SCN写给定的身份/版本/环境、具体操作和返回顺序、用户可见与服务端可验证的结果、不得发生的副作用、恢复入口、实际证据。未执行用planned/blocked。
+## 5. Review order
 
-## 5. 逐页审查顺序
+Walk the main task first, then every instance:
 
-先走主任务理解页面，再按全部CMP执行：
+1. Visual/content: hierarchy, density, truncation, themes, reference differences.
+2. Behavior: actions, reversal, cancellation, interruption, repetition, fake/inert controls.
+3. Semantics: native elements, names, reading order, focus, keyboard, feedback.
+4. Data: real contract, loading/failure, identity, cache, concurrent effects.
+5. Implementation: ownership, identity, duplication, dependencies, errors, cleanup.
+6. Stress: realistic content scale, layout combinations, performance, duration.
+7. Boundaries: privacy, permissions, third parties, build/release dependencies.
+8. Save the page's `CHK/FND/BP`, decisions, and `SCN`.
 
-1. 视觉内容：布局、对齐、字体、密度、截断、主题、基准差异。
-2. 行为：每个操作、反向、取消、中断、重复和无效/虚假操作。
-3. 语义：原生元素、名称、层级、阅读顺序、焦点、键盘和反馈。
-4. 数据：真实接口、字段含义、加载失败、身份、缓存、并发副作用。
-5. 实现：状态所有权、组件身份、重复逻辑、依赖、错误与清理。
-6. 压力：内容规模、布局组合、真实性能、长时间使用。
-7. 边界：权限隐私、第三方、构建发布依赖。
-8. 归档：本页所有CMP的CHK/FND/BP/处置/SCN。
+Scans supplement task observation, source tracing, and business assertions. Link recordings or stage screenshots to page/instance/scenario and baseline when available.
 
-工具扫描增加证据，不能替代人工任务、代码追踪与业务断言。关键交互可录制或留阶段截图，标注PAGE/CMP/SCN与版本。
+## 6. Verify evidence
 
-## 6. 证据与问题核实
+Find minimum safe reproduction conditions. Static control flow may prove a definite defect without proving its browser impact. Performance needs build mode, device, network, scale, operation, and metrics; bundle size and render counts alone are not defects.
 
-确定最小复现条件。静态控制流可证明确定缺陷，但不能声称复现了未运行故障。
+Establish actual security boundaries and existing framework/platform protections. Missing backend visibility does not prove missing authorization. Prioritize high-consequence unknowns for evidence gathering.
 
-性能记录构建模式、设备、网络、规模、操作、指标；不足则说待测，不用大包或重渲染次数直接判错。
+Separate design violations, usability barriers, and subjective preferences. Recheck original and affected scenarios after fixes. Record source changes, static checks, tests, and deployment separately.
 
-安全记录真实信任边界和框架/平台防护。只从前端看不到后端时，不断言后端没检查；高后果待验证风险仍优先补证。
+## 7. Coverage and continuation
 
-视觉区分违反设计、影响可读可操作、主观偏好。主观建议不计作确定缺陷。
+Maintain one authoritative `audit.json`. If delegation is authorized, assign page/domain work and stable ID ranges; collect evidence records and let one owner merge, deduplicate, preserve instance differences, and validate. Do not have multiple agents write the same ledger.
 
-修复后执行原SCN和影响SCN。代码改变、静态检查通过、测试完成、上线分别记录。
-
-## 7. 覆盖、协作和结束
-
-主代理维护唯一audit.json。子代理按页或领域交局部证据，主代理分配/映射ID、归并根因、保留实例差异并校验。
-
-先建全量分母，按批写结果。更新说明新增发现、已完成页/实例、实际阻碍、下一步。
-
-结束前核对所有PAGE有完整实例报告，所有CMP有八维状态/SCN/处置，所有确定FND有证据/实际预期/TASK，所有BP和TASK有具体目标/位置/依赖/验收/恢复；保留blocked和版本限制。审查完成、方案完成、发布条件满足分别判断。
+Inventory the full known denominator before batches. Save new discoveries, completed pages/instances, actual blockers, and next actions. Before delivery, account for every page and instance, eight dimensions, scenarios, evidence-backed findings, concrete blueprints/tasks, dependencies, and recovery. Judge review coverage, plan coverage, and release conditions separately.

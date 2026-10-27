@@ -1,41 +1,39 @@
-# BadGoods · 机器特产
+# BadGoods
 
-把用得上的 AI 技能，做成可以带走的工具。
+Practical AI skills you can take into your own workflow.
 
-## 前端审查助手
+## Frontend Review Assistant
 
-前端审查助手可以帮你审查产品原型的前端代码，细致到逐个页面的逐个组件，帮你找到可以进一步完善的问题，并给出明确的修复方案与验收条件。
+Review a prototype or AI-generated frontend, find problems in pages and components, and turn the evidence into prioritized fixes and clear acceptance criteria.
 
-**[下载前端审查助手 ZIP](downloads/review-frontend-production.zip?raw=true)** · **[查看技能说明](skills/review-frontend-production/SKILL.md)** · **[查看示例报告](skills/review-frontend-production/examples/source-only/review.md)**
+**[Download the skill ZIP](downloads/review-frontend-production.zip?raw=true)** · **[Read the skill](skills/review-frontend-production/SKILL.md)** · **[See an example report](skills/review-frontend-production/examples/source-only/review.md)**
 
-### 怎么用
+### Get started
 
-你只需提供源代码、网址或截图，前端审查助手就能帮你检查页面和交互问题，梳理修复顺序，并给出验收方法。支持快速体检和逐页深入审查；未验证的内容会明确标注，只有你要求时才修改代码。
+1. Download and extract the ZIP. Add it to an AI tool that supports local skills, following that tool's installation instructions. `SKILL.md` is at the ZIP root.
+2. Provide accessible source code, a URL, or screenshots, along with the main task you want reviewed.
+3. Ask for a quick check or a full review:
 
-1. 下载并解压 ZIP，将技能交给支持本地 Skill 的 AI 工具。安装方式以所用工具为准。
-2. 提供可访问的项目源码、网址或截图。
-3. 告诉助手你要快速体检还是完整审查，例如：
+> Use the Frontend Review Assistant to check this project. Focus on form submission and the mobile experience. List the evidence, user impact, fix order, and acceptance criteria. Do not change the code yet.
 
-> 使用前端审查助手检查这个项目，重点看表单提交和手机端体验。列出问题、影响、修复顺序和验收方法，先不要改代码。
-
-只提供截图时只能检查图中可见内容；浏览器实测和脚本执行取决于 AI 工具的能力。仓库中的示例均为虚构数据。
-
-### 两种审查方式
-
-| 方式 | 适合什么情况 | 你会得到什么 |
+| Review | Best for | Deliverables |
 |---|---|---|
-| 快速体检 | 想先知道主要问题 | 重点问题、修复顺序和未验证范围 |
-| 完整审查 | 准备逐页检查或交给工程师 | 页面与组件台账、证据、修复任务和验收方案 |
+| Quick check (default) | Finding the main risks in selected user journeys | A focused report, fix order, and unverified areas |
+| Full review | Reviewing every discovered page and component instance | A coverage ledger, evidence, component plans, implementation tasks, and acceptance checks |
 
-版本：0.3.0-beta。辅助脚本的 17 项回归测试通过；不代表任何被审查产品已经通过上线验收。
+The assistant changes application code only when you ask it to implement fixes. Reports default to English; request another language when needed. The stable skill ID is `review-frontend-production`.
 
-## 文件说明
+Screenshots support visual observations about the states shown. Source review, browser testing, and backend verification are different forms of evidence. Browser access and script execution depend on the AI tool hosting the skill.
 
-- `skills/review-frontend-production/`：技能说明、审查参考、脚本、测试和虚构示例。
-- `downloads/review-frontend-production.zip`：可下载的技能包，解压后直接看到 SKILL.md。
+### What's included
 
-本仓库只分享技能及虚构示例，不包含其他业务项目源码或客户数据。
+- [`skills/review-frontend-production/`](skills/review-frontend-production/): instructions, review guides, Python helpers, regression tests, and a fictional source-only example.
+- [`downloads/review-frontend-production.zip`](downloads/review-frontend-production.zip): the same skill, packaged for download with `SKILL.md` at the root.
 
-## 使用许可
+Version: **0.4.0-beta**. See the [changelog](skills/review-frontend-production/CHANGELOG.md) for improvements and the [validation record](skills/review-frontend-production/VALIDATION.md) for checks actually performed. Passing the helper tests does not certify any reviewed product as ready to launch.
 
-目前作为公开试用分享，尚未选定开放源代码许可证。商业使用、修改和再分发的授权范围见 [许可说明](skills/review-frontend-production/LICENSE-NOTICE.md)。
+This repository contains the skill and fictional examples. It does not include client projects or customer data.
+
+## License status
+
+This is a public beta. An open-source license has not been selected. Download availability does not itself grant commercial-use, modification, or redistribution rights. See the [license notice](skills/review-frontend-production/LICENSE-NOTICE.md).

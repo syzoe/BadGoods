@@ -1,19 +1,33 @@
-# 更新记录
+# Changelog
+
+## 0.4.0-beta — 2026-10-27
+
+- Made the repository README, skill instructions, nine reference guides, report templates, host metadata, example, and generated reports English. English is the report default; users can request another language without changing the application's own content language.
+- Condensed repeated guidance while retaining all 32 component categories, eight instance dimensions, ten blueprint dimensions, and the existing quick/full and audit/implement workflows. Stable skill ID and ledger schema remain unchanged.
+- Made capability limits, script inspection, evidence baselines, output safety, and the difference between proposed and executed acceptance checks easier to follow.
+- Fixed ledger saves that could clobber an unrelated `<ledger>.writing` file or follow that sidecar's symlink. Saves now use unique atomic temporary files and clean up after failed serialization.
+- Closed a discovery privacy gap: source-named symlinks pointing to excluded credential files inside the project are now skipped at the resolved-path boundary. External symlink protection remains in place.
+- Added regression checks for sidecar preservation, symlink-target preservation, failed-save recovery/cleanup, and English default output. The suite now has 22 tests.
+- Updated the fictional fixture to English as `fixture-v2-en`, retained historical evidence, and recorded new source/static checks without inventing browser results.
+- Rebuilt the download ZIP from the complete skill directory, including optional host metadata and icon; package contents are checked against source.
+- Kept the existing license status. Public download does not imply an open-source license.
 
 ## 0.3.0-beta — 2026-10-10
 
-- 使用 9 字中文展示名“前端项目体检助手”，保留稳定英文 Skill ID。
-- 在 SKILL.md 补充输入、直接使用示例、输出和宿主能力不足时的处理。
-- 新增根目录含 SKILL.md 的分发 ZIP 与独立发布填写说明。
-- 不将未经后台核实的资格、格式和审核时长写成技能执行规则。
+Historical release notes, translated from the original:
 
+- Added a Chinese display name while preserving the stable English skill ID.
+- Documented inputs, direct-use examples, outputs, and host capability fallback.
+- Added a distribution ZIP with `SKILL.md` at its root and publishing-form guidance.
+- Kept unverified platform eligibility, format, and review-time claims out of execution rules.
 
 ## 0.2.0-beta — 2026-10-10
 
-- 增加 quick/full 深度选择；完整审查保留原有覆盖要求。
-- 新增使用说明、虚构项目完整源码审查示例与标准库回归测试。
-- 增加 review_depth 校验；快速模式不能获得完整审查或发布就绪结论。
-- 整理分享包，排除系统元数据与运行缓存。
-- 补充证据边界、输出脱敏提醒、许可状态和实际验证记录。
+Historical release notes, translated from the original:
 
-既有审查规则与主要台账结构继续兼容；旧台账未填写 review_depth 时按 full 处理。没有新增自动浏览器审查或生产认证能力。
+- Added quick/full depth selection while retaining full-review coverage requirements.
+- Added usage guidance, a fictional source-only example, and standard-library regression tests.
+- Validated `review_depth`; quick mode cannot pass full-review or readiness gates.
+- Excluded system metadata/caches from distribution and documented evidence/privacy/license/validation limits.
+
+Existing rules and ledger structure remain compatible. Legacy ledgers without `review_depth` use full mode. These releases added no automatic browser review or product certification.
